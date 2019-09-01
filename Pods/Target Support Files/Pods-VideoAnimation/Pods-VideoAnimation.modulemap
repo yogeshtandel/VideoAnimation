@@ -1,0 +1,6 @@
+framework module Pods_VideoAnimation {
+  umbrella header "Pods-VideoAnimation-umbrella.h"
+
+  export *
+  module * { export * }
+}
