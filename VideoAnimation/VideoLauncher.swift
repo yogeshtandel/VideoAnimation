@@ -16,8 +16,14 @@ class VideoPlayerView:UIView {
     var playerLayer :AVPlayerLayer?
     var isPlaying = false
     var isFullScreen = false
+    var isControlShowing = true
     fileprivate let seekDuration: Float64 = 10
    
+    let controlsContainerView:UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(white: 0, alpha: 1.0)
+        return view
+    }()
     
     let activityIndicatorView : UIActivityIndicatorView = {
         let aiv = UIActivityIndicatorView(style: .whiteLarge)
@@ -107,16 +113,17 @@ class VideoPlayerView:UIView {
         return slider
     }()
     
-    let controlsContainerView:UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(white: 0, alpha: 1.0)
-        return view
-    }()
+    
     
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = UIColor.black
         NotificationCenter.default.addObserver(self, selector: #selector(self.didOrientationChange(_:)), name: UIDevice.orientationDidChangeNotification, object: nil)
+        
+        let tapGesture = UITapGestureRecognizer (target: self, action: #selector(controlsContainerTap(tapGesture:)))
+        controlsContainerView.addGestureRecognizer(tapGesture)
+        controlsContainerView.isUserInteractionEnabled = true
+        
     }
     
     @objc func didOrientationChange(_ notification: Notification) {
@@ -225,16 +232,32 @@ class VideoPlayerView:UIView {
         return .pi * x / 180.0
     }
     
+    @objc func controlsContainerTap(tapGesture: UITapGestureRecognizer) {
+        //showNameTimer = Timer.scheduledTimer(timeInterval: 2, target: self, selector: #selector(runTimedCode), userInfo: nil, repeats: false)
+        videoLapsedLabel.isHidden = !isControlShowing
+        videoLengthLabel.isHidden = !isControlShowing
+        videoSlider.isHidden = !isControlShowing
+        pausePlayButton.isHidden = !isControlShowing
+        rewindButton.isHidden = !isControlShowing
+        forwardButton.isHidden = !isControlShowing
+        minimizeButton.isHidden = !isControlShowing
+        resizeButton.isHidden = !isControlShowing
+        
+        isControlShowing = !isControlShowing
+    }
+    
     @objc func SliderValueChanged(){
         print(videoSlider.value)
-        if let duration = player?.currentItem?.duration{
-            let totalSeconds = CMTimeGetSeconds(duration)
-            let value = Float64(videoSlider.value) * totalSeconds
-            let seekTime = CMTime(seconds: value, preferredTimescale: 1)
-            player?.seek(to: seekTime, completionHandler: { (completedSeek) in
-                
-            })
+        guard let duration  = self.player?.currentItem?.duration else{
+            print("Error getting duration")
+            return
         }
+        let totalSeconds = CMTimeGetSeconds(duration)
+        let value = Float64(videoSlider.value) * totalSeconds
+        let seekTime = CMTime(seconds: value, preferredTimescale: 1)
+        player?.seek(to: seekTime, completionHandler: { (completedSeek) in
+            
+        })
     }
        
     
@@ -320,10 +343,12 @@ class VideoPlayerView:UIView {
                 self.videoLapsedLabel.text = "\(minuteStr):\(secondsStr)"
                 
                 // move slider
-                if let duration = self.player?.currentItem?.duration{
-                    let durationSecs = CMTimeGetSeconds(duration)
-                    self.videoSlider.value = Float(seconds / durationSecs)
+                guard let duration  = self.player?.currentItem?.duration else{
+                    print("Error getting duration")
+                    return
                 }
+                let durationSecs = CMTimeGetSeconds(duration)
+                self.videoSlider.value = Float(seconds / durationSecs)
             })
         }
     }
@@ -346,12 +371,15 @@ class VideoPlayerView:UIView {
             forwardButton.isHidden = false
             isPlaying = true
             
-            if let duration = player?.currentItem?.duration{
-                let seconds = CMTimeGetSeconds(duration)
-                let secondsStr = String(format: "%02d", Int(seconds) % 60)
-                let minuteStr = String(format: "%02d", Int(seconds) / 60)
-                videoLengthLabel.text = "\(minuteStr):\(secondsStr)"
+            
+            guard let duration  = player?.currentItem?.duration else{
+                print("Error getting duration")
+                return
             }
+            let seconds = CMTimeGetSeconds(duration)
+            let secondsStr = String(format: "%02d", Int(seconds) % 60)
+            let minuteStr = String(format: "%02d", Int(seconds) / 60)
+            videoLengthLabel.text = "\(minuteStr):\(secondsStr)"
         }
     }
 }
